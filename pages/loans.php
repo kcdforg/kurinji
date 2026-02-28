@@ -122,12 +122,12 @@ $selectedLender = (int)($_GET['lender_id'] ?? 0);
 </div>
 
 <?php
-$where = $selectedLender ? "WHERE t.lender_id=$selectedLender AND YEAR(t.txn_date)=$year" : "WHERE YEAR(t.txn_date)=$year";
+$where = $selectedLender ? ("WHERE t.lender_id=$selectedLender " . ($year == 0 ? '' : "AND YEAR(t.txn_date)=$year")) : ($year == 0 ? "WHERE 1" : "WHERE YEAR(t.txn_date)=$year");
 $txns  = q("SELECT t.txn_date, l.lender_name, l.lender_type, t.loan_availed, t.balance, t.interest_pct, t.interest_amount, t.amount_paid
             FROM loan_transaction t JOIN loan_lender l ON l.id=t.lender_id $where ORDER BY t.txn_date DESC");
 ?>
 <div class="card p-3">
-  <div class="section-title">Loan Transactions — <?= $year ?></div>
+  <div class="section-title">Loan Transactions <?= $year == 0 ? '(All Years)' : "— " . $year ?></div>
   <div class="table-responsive">
     <table class="table table-sm table-hover datatable">
       <thead>
@@ -155,18 +155,20 @@ $txns  = q("SELECT t.txn_date, l.lender_name, l.lender_type, t.loan_availed, t.b
 
 <?php elseif($tab === 'monthly'): ?>
 <?php
+$yearFilter = $year == 0 ? '' : 'AND YEAR(txn_date)=?';
+$yearParam = $year == 0 ? [] : [$year];
 $monthly = q("
   SELECT DATE_FORMAT(txn_date,'%Y-%m') m,
          SUM(loan_availed)    availed,
          SUM(interest_amount) interest,
          SUM(amount_paid)     paid
-  FROM loan_transaction WHERE YEAR(txn_date)=?
-  GROUP BY m ORDER BY m", [$year]);
+  FROM loan_transaction WHERE 1 $yearFilter
+  GROUP BY m ORDER BY m", $yearParam);
 ?>
 <div class="row g-3">
   <div class="col-lg-7">
     <div class="card p-3">
-      <div class="section-title">Monthly Loan Summary — <?= $year ?></div>
+      <div class="section-title">Monthly Loan Summary <?= $year == 0 ? '(All Years)' : "— " . $year ?></div>
       <table class="table table-sm table-hover">
         <thead><tr><th>Month</th><th class="text-end">New Loans</th><th class="text-end">Interest</th><th class="text-end">Repayments</th><th class="text-end">Net</th></tr></thead>
         <tbody>
@@ -187,12 +189,12 @@ $monthly = q("
   </div>
   <div class="col-lg-5">
     <div class="card p-3">
-      <div class="section-title">Interest by Lender Type — <?= $year ?></div>
+      <div class="section-title">Interest by Lender Type <?= $year == 0 ? '(All Years)' : "— " . $year ?></div>
       <table class="table table-sm">
         <thead><tr><th>Type</th><th class="text-end">Interest Paid</th></tr></thead>
         <tbody>
         <?php
-        $bytype = q("SELECT l.lender_type, SUM(t.interest_amount) int FROM loan_transaction t JOIN loan_lender l ON l.id=t.lender_id WHERE YEAR(t.txn_date)=? GROUP BY l.lender_type ORDER BY int DESC", [$year]);
+        $bytype = q("SELECT l.lender_type, SUM(t.interest_amount) int FROM loan_transaction t JOIN loan_lender l ON l.id=t.lender_id WHERE 1 $yearFilter GROUP BY l.lender_type ORDER BY int DESC", $yearParam);
         foreach($bytype as $r): ?>
           <tr><td><?= $r['lender_type'] ?></td><td class="text-end text-warning"><?= money($r['int']) ?></td></tr>
         <?php endforeach; ?>

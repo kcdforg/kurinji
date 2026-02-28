@@ -216,4 +216,3 @@ $rows = q("SELECT id,inv_date,particulars,amount FROM sales_investment ORDER BY 
   </table>
 </div>
 <?php endif; ?>
-

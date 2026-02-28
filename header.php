@@ -6,6 +6,7 @@ $navLinks = [
     'expenses'    => ['icon'=>'bi-receipt',          'label'=>'Expenses'],
     'loans'       => ['icon'=>'bi-bank',             'label'=>'Loans'],
     'feed_cost'   => ['icon'=>'bi-basket3',          'label'=>'Feed Cost'],
+    'production' =>['icon'=>'bi-egg',             'label'=>'Production'],
     'salary'      => ['icon'=>'bi-people',           'label'=>'Salary & Labour'],
 ];
 ?>
@@ -70,6 +71,7 @@ body { background: #f4f6f9; font-size: .9rem; }
       <input type="hidden" name="page" value="<?= $page ?>">
       <label class="fw-semibold">Year:</label>
       <select name="year" class="form-select form-select-sm" onchange="this.form.submit()">
+        <option value="0" <?= $year==0 ? 'selected':'' ?>>All Years</option>
         <?php
         $years = q("SELECT DISTINCT YEAR(sale_date) y FROM sales_egg UNION SELECT DISTINCT YEAR(purchase_date) FROM exp_chick UNION SELECT DISTINCT YEAR(txn_date) FROM loan_transaction ORDER BY y DESC");
         foreach($years as $yr): ?>

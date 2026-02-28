@@ -24,24 +24,55 @@ $yearlyData = q("
 ");
 
 // Monthly breakdown for selected year
+$whereYear = $year == 0 ? '' : 'WHERE ';
+$monthlyParams = [];
+$monthlyQueries = [];
+
+if ($year == 0) {
+  // All years - don't filter by year
+  $monthlyQueries = [
+    "SELECT DATE_FORMAT(sale_date,'%b') m, MONTH(sale_date) mo, amount rev, 0 exp FROM sales_egg",
+    "SELECT DATE_FORMAT(sale_date,'%b'), MONTH(sale_date), amount, 0 FROM sales_feed",
+    "SELECT DATE_FORMAT(sale_date,'%b'), MONTH(sale_date), amount, 0 FROM sales_culling",
+    "SELECT DATE_FORMAT(sale_date,'%b'), MONTH(sale_date), amount, 0 FROM sales_manure",
+    "SELECT DATE_FORMAT(sale_date,'%b'), MONTH(sale_date), amount, 0 FROM sales_raw_material",
+    "SELECT DATE_FORMAT(purchase_date,'%b'), MONTH(purchase_date), 0, amount FROM exp_chick",
+    "SELECT DATE_FORMAT(purchase_date,'%b'), MONTH(purchase_date), 0, amount FROM exp_feed_ingredient",
+    "SELECT DATE_FORMAT(purchase_date,'%b'), MONTH(purchase_date), 0, amount FROM exp_feeds",
+    "SELECT DATE_FORMAT(purchase_date,'%b'), MONTH(purchase_date), 0, amount FROM exp_medicine",
+    "SELECT DATE_FORMAT(payment_date,'%b'),  MONTH(payment_date),  0, amount FROM exp_salary",
+    "SELECT DATE_FORMAT(payment_date,'%b'),  MONTH(payment_date),  0, amount FROM exp_rent",
+    "SELECT DATE_FORMAT(expense_date,'%b'),  MONTH(expense_date),  0, amount FROM exp_misc",
+    "SELECT DATE_FORMAT(work_start,'%b'),    MONTH(work_start),    0, amount FROM exp_labour",
+    "SELECT DATE_FORMAT(purchase_date,'%b'), MONTH(purchase_date), 0, amount FROM exp_asset",
+  ];
+} else {
+  // Specific year
+  $monthlyQueries = [
+    "SELECT DATE_FORMAT(sale_date,'%b') m, MONTH(sale_date) mo, amount rev, 0 exp FROM sales_egg WHERE YEAR(sale_date)=?",
+    "SELECT DATE_FORMAT(sale_date,'%b'), MONTH(sale_date), amount, 0 FROM sales_feed WHERE YEAR(sale_date)=?",
+    "SELECT DATE_FORMAT(sale_date,'%b'), MONTH(sale_date), amount, 0 FROM sales_culling WHERE YEAR(sale_date)=?",
+    "SELECT DATE_FORMAT(sale_date,'%b'), MONTH(sale_date), amount, 0 FROM sales_manure WHERE YEAR(sale_date)=?",
+    "SELECT DATE_FORMAT(sale_date,'%b'), MONTH(sale_date), amount, 0 FROM sales_raw_material WHERE YEAR(sale_date)=?",
+    "SELECT DATE_FORMAT(purchase_date,'%b'), MONTH(purchase_date), 0, amount FROM exp_chick WHERE YEAR(purchase_date)=?",
+    "SELECT DATE_FORMAT(purchase_date,'%b'), MONTH(purchase_date), 0, amount FROM exp_feed_ingredient WHERE YEAR(purchase_date)=?",
+    "SELECT DATE_FORMAT(purchase_date,'%b'), MONTH(purchase_date), 0, amount FROM exp_feeds WHERE YEAR(purchase_date)=?",
+    "SELECT DATE_FORMAT(purchase_date,'%b'), MONTH(purchase_date), 0, amount FROM exp_medicine WHERE YEAR(purchase_date)=?",
+    "SELECT DATE_FORMAT(payment_date,'%b'),  MONTH(payment_date),  0, amount FROM exp_salary WHERE YEAR(payment_date)=?",
+    "SELECT DATE_FORMAT(payment_date,'%b'),  MONTH(payment_date),  0, amount FROM exp_rent WHERE YEAR(payment_date)=?",
+    "SELECT DATE_FORMAT(expense_date,'%b'),  MONTH(expense_date),  0, amount FROM exp_misc WHERE YEAR(expense_date)=?",
+    "SELECT DATE_FORMAT(work_start,'%b'),    MONTH(work_start),    0, amount FROM exp_labour WHERE YEAR(work_start)=?",
+    "SELECT DATE_FORMAT(purchase_date,'%b'), MONTH(purchase_date), 0, amount FROM exp_asset WHERE YEAR(purchase_date)=?",
+  ];
+  $monthlyParams = array_fill(0, 14, $year);
+}
+
+$monthlyUnionQuery = implode(" UNION ALL ", $monthlyQueries);
 $monthly = q("
   SELECT m, SUM(rev) rev, SUM(exp) exp, SUM(rev)-SUM(exp) pl FROM (
-    SELECT DATE_FORMAT(sale_date,'%b') m, MONTH(sale_date) mo, amount rev, 0 exp FROM sales_egg      WHERE YEAR(sale_date)=?
-    UNION ALL SELECT DATE_FORMAT(sale_date,'%b'), MONTH(sale_date), amount, 0 FROM sales_feed     WHERE YEAR(sale_date)=?
-    UNION ALL SELECT DATE_FORMAT(sale_date,'%b'), MONTH(sale_date), amount, 0 FROM sales_culling  WHERE YEAR(sale_date)=?
-    UNION ALL SELECT DATE_FORMAT(sale_date,'%b'), MONTH(sale_date), amount, 0 FROM sales_manure   WHERE YEAR(sale_date)=?
-    UNION ALL SELECT DATE_FORMAT(sale_date,'%b'), MONTH(sale_date), amount, 0 FROM sales_raw_material WHERE YEAR(sale_date)=?
-    UNION ALL SELECT DATE_FORMAT(purchase_date,'%b'), MONTH(purchase_date), 0, amount FROM exp_chick          WHERE YEAR(purchase_date)=?
-    UNION ALL SELECT DATE_FORMAT(purchase_date,'%b'), MONTH(purchase_date), 0, amount FROM exp_feed_ingredient WHERE YEAR(purchase_date)=?
-    UNION ALL SELECT DATE_FORMAT(purchase_date,'%b'), MONTH(purchase_date), 0, amount FROM exp_feeds           WHERE YEAR(purchase_date)=?
-    UNION ALL SELECT DATE_FORMAT(purchase_date,'%b'), MONTH(purchase_date), 0, amount FROM exp_medicine        WHERE YEAR(purchase_date)=?
-    UNION ALL SELECT DATE_FORMAT(payment_date,'%b'),  MONTH(payment_date),  0, amount FROM exp_salary          WHERE YEAR(payment_date)=?
-    UNION ALL SELECT DATE_FORMAT(payment_date,'%b'),  MONTH(payment_date),  0, amount FROM exp_rent            WHERE YEAR(payment_date)=?
-    UNION ALL SELECT DATE_FORMAT(expense_date,'%b'),  MONTH(expense_date),  0, amount FROM exp_misc            WHERE YEAR(expense_date)=?
-    UNION ALL SELECT DATE_FORMAT(work_start,'%b'),    MONTH(work_start),    0, amount FROM exp_labour          WHERE YEAR(work_start)=?
-    UNION ALL SELECT DATE_FORMAT(purchase_date,'%b'), MONTH(purchase_date), 0, amount FROM exp_asset           WHERE YEAR(purchase_date)=?
+    $monthlyUnionQuery
   ) t GROUP BY m, mo ORDER BY mo",
-  array_fill(0,14,$year));
+  $monthlyParams);
 
 // Interest paid by year
 $intByYear = q("SELECT YEAR(txn_date) yr, SUM(interest_amount) i FROM loan_transaction GROUP BY yr ORDER BY yr");
@@ -105,7 +136,7 @@ $intMap = array_column($intByYear,'i','yr');
 <div class="row g-3 mb-4">
   <div class="col-12">
     <div class="card p-3">
-      <div class="section-title">Monthly P&L — <?= $year ?></div>
+      <div class="section-title">Monthly P&L <?= $year == 0 ? '(All Years)' : "— " . $year ?></div>
       <div class="table-responsive">
         <table class="table table-bordered table-hover table-sm align-middle">
           <thead>

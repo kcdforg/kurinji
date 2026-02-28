@@ -26,6 +26,7 @@ switch($page) {
     case 'expenses':    include 'pages/expenses.php';    break;
     case 'loans':       include 'pages/loans.php';       break;
     case 'feed_cost':   include 'pages/feed_cost.php';  break;
+    case 'production':  include 'pages/production.php'; break;
     case 'salary':      include 'pages/salary.php';      break;
     default:            include 'pages/dashboard.php';
 }

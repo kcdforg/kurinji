@@ -26,18 +26,18 @@ $byMonth = q("
          SUM(amount)/NULLIF(SUM(qty_kg),0) avg_rate,
          SUM(amount) cost
   FROM exp_feed_ingredient
-  WHERE YEAR(purchase_date)=?
+  WHERE 1 " . ($year == 0 ? '' : 'AND YEAR(purchase_date)=?') . "
   GROUP BY m, category ORDER BY m, cost DESC
-", [$year]);
+", $year == 0 ? [] : [$year]);
 
 // Monthly total feed cost
 $monthTotal = q("
   SELECT m, SUM(cost) total FROM (
-    SELECT DATE_FORMAT(purchase_date,'%Y-%m') m, SUM(amount) cost FROM exp_feed_ingredient WHERE YEAR(purchase_date)=? GROUP BY m
+    SELECT DATE_FORMAT(purchase_date,'%Y-%m') m, SUM(amount) cost FROM exp_feed_ingredient WHERE 1 " . ($year == 0 ? '' : 'AND YEAR(purchase_date)=?') . " GROUP BY m
     UNION ALL
-    SELECT DATE_FORMAT(purchase_date,'%Y-%m'), SUM(amount) FROM exp_feeds WHERE YEAR(purchase_date)=? GROUP BY DATE_FORMAT(purchase_date,'%Y-%m')
+    SELECT DATE_FORMAT(purchase_date,'%Y-%m'), SUM(amount) FROM exp_feeds WHERE 1 " . ($year == 0 ? '' : 'AND YEAR(purchase_date)=?') . " GROUP BY DATE_FORMAT(purchase_date,'%Y-%m')
   ) x GROUP BY m ORDER BY m
-", [$year,$year]);
+", $year == 0 ? [] : array_fill(0, 2, $year));
 ?>
 
 <!-- Overall feed ingredient summary -->
@@ -121,7 +121,7 @@ $monthTotal = q("
 <div class="row g-3 mb-4">
   <div class="col-lg-7">
     <div class="card p-3">
-      <div class="section-title">Monthly Feed Cost Detail — <?= $year ?></div>
+      <div class="section-title">Monthly Feed Cost Detail <?= $year == 0 ? '(All Years)' : "— " . $year ?></div>
       <div class="table-responsive">
         <table class="table table-sm table-hover">
           <thead><tr><th>Month</th><th>Category</th><th class="text-end">Qty(Kg)</th><th class="text-end">Avg Rate</th><th class="text-end">Cost</th></tr></thead>
@@ -142,7 +142,7 @@ $monthTotal = q("
   </div>
   <div class="col-lg-5">
     <div class="card p-3">
-      <div class="section-title">Monthly Total Feed Cost — <?= $year ?></div>
+      <div class="section-title">Monthly Total Feed Cost <?= $year == 0 ? '(All Years)' : "— " . $year ?></div>
       <canvas id="chartFeed" height="200"></canvas>
     </div>
   </div>
